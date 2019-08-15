@@ -1,15 +1,12 @@
 library(readr)
+library(tidyverse)
 library(ggplot2)
 library(ggthemes)
 library(ggrepel)
-library(tidyverse)
-library(anomalize)
-library(outliers)
-library(plotly)
-library(cluster)
-library(factoextra)
+library(dbscan)
 
-setwd("~/MINT/Economic")
+
+setwd("~/MINT/Economic/Anomaly-Detection")
 wname <- getwd() # set back to working directory
 dname <- paste(wname,"economicdata",sep="/") # will open data file in workikng directory
 oname <- paste(wname,"outputs",sep="/") # will open outputs file in workikng directory
@@ -103,24 +100,24 @@ mad_outliers_all_fertuse <- data_valid %>%
 # hist(mad_outliers_all_fert$crop)
 
 ### flag outliers in original dataframe and add reason "MAD outlier" -> only flag yield and fert since those are the variables we are comparing in clusters
+# land area
 # data$flag[which(data$run_ID %in% mad_outliers_all_land$run_ID)] <- "invalid" 
 # data$reason[which(data$run_ID %in% mad_outliers_all_land$run_ID)] <- paste(data$reason, "MAD land outlier", sep = ";")
-
+# yield
 data$flag[which(data$run_ID %in% mad_outliers_all_yield$run_ID)] <- "invalid" 
 data$reason[which(data$run_ID %in% mad_outliers_all_yield$run_ID)] <- paste(data$reason, "MAD yield outlier", sep = ";")
-
+# production
 # skip otherwise all runs will be flagged as invalid with MAD production outlier
 # data$flag[which(data$run_ID %in% mad_outliers_all_prod$run_ID)] <- "invalid" 
 # data$reason[which(data$run_ID %in% mad_outliers_all_prod$run_ID)] <- paste(data$reason, "MAD production outlier", sep = ";")
-
+# fert application
 data$flag[which(data$run_ID %in% mad_outliers_all_fert$run_ID)] <- "invalid" 
 data$reason[which(data$run_ID %in% mad_outliers_all_fert$run_ID)] <- paste(data$reason, "MAD fert outlier", sep = ";")
-
+# fert use
 # data$flag[which(data$run_ID %in% mad_outliers_all_fertuse$run_ID)] <- "invalid" 
 # data$reason[which(data$run_ID %in% mad_outliers_all_fertuse$run_ID)] <- paste(data$reason, "MAD fert use outlier", sep = ";")
 
 ########################## END MAD OUTLIER DETECTION #########################
-
 
 ### remove outliers from data
 data_clean <- subset(data, flag=="valid")
@@ -237,7 +234,7 @@ cassava_subruns_select <- cassava_subruns[ , c("run_ID", "diff_yield", "diff_fer
 # reference: https://stackoverflow.com/questions/12893492/choosing-eps-and-minpts-for-dbscan-r
 # use 2 * dim or ln(dim) for minPts if # of variables > 2, min points = k
 kNNdist_cassava <- sort(kNNdist(cassava_subruns_select, k = (length(cassava_subruns_select)) + 1))
-kNNdistplot(cassava_subruns_select, k = (length(cassava_subruns_select)) + 1)
+# kNNdistplot(cassava_subruns_select, k = (length(cassava_subruns_select)) + 1)
 
 ### calculate second derivative to find maximum curvature of "knee" of plot to obtain eps value, eps = second_d
 ### needs work so eps is automated, currently eps is found from looking at kNNdistplot and approximating max curvature, then testing +/- from that value until # of clusters is as few as possible and # in each cluster doesn't change
@@ -250,9 +247,6 @@ kNNdistplot(cassava_subruns_select, k = (length(cassava_subruns_select)) + 1)
 ### run DBSCAN analysis
 res_dbscan <- dbscan(cassava_subruns_select, eps = 74, minPts = (length(cassava_subruns_select)) + 1)
 res_dbscan
-
-### visualize relationships between variables & clusters
-pairs(cassava_subruns_select, col = res_dbscan$cluster + 1L)
 
 ### add dbscan cluster values to cluster dataframe
 cassava_dbscan_df <- res_dbscan[1] %>%
@@ -270,12 +264,6 @@ cassava_results$cluster[which(cassava_results$run_ID %in% cassava_subruns_select
 ### isolate outliers flagged by DBSCAN
 cassava_outliers <- subset(cassava_results, cluster==0)
 
-### visualize outliers in relation to p, c1, c2 inputs
-ggplot(cassava_outliers, aes(x = c1, y = c2, color = p)) +
-  geom_point(size = 8) +
-  scale_color_gradientn(colours = rainbow(5)) +
-  geom_text_repel(aes(label = p), color = "black", size = 8)
-
 
 ### GROUNDNUTS ###
 ### select variables for clustering
@@ -291,7 +279,7 @@ groundnuts_subruns_select <- groundnuts_subruns[ , c("run_ID", "diff_yield", "di
 # reference: https://stackoverflow.com/questions/12893492/choosing-eps-and-minpts-for-dbscan-r
 # use 2 * dim or ln(dim) for min points, min points = k
 kNNdist_groundnuts <- sort(kNNdist(groundnuts_subruns_select, k = (length(groundnuts_subruns_select)) + 1))
-kNNdistplot(groundnuts_subruns_select, k = (length(groundnuts_subruns_select)) + 1)
+# kNNdistplot(groundnuts_subruns_select, k = (length(groundnuts_subruns_select)) + 1)
 
 ### calculate second derivative to find maximum curvature of "knee" of plot to obtain eps value, eps = second_d
 # mid <- 1:length(kNNdist_groundnuts) 
@@ -303,9 +291,6 @@ kNNdistplot(groundnuts_subruns_select, k = (length(groundnuts_subruns_select)) +
 ### run DBSCAN analysis
 res_dbscan <- dbscan(groundnuts_subruns_select, eps = 57, minPts = (length(groundnuts_subruns_select)) + 1)
 res_dbscan
-
-### visualize relationships between variables & clusters
-pairs(groundnuts_subruns_select, col = res_dbscan$cluster + 1L)
 
 ### add dbscan cluster values to cluster dataframe
 groundnuts_dbscan_df <- res_dbscan[1] %>%
@@ -323,12 +308,6 @@ groundnuts_results$cluster[which(groundnuts_results$run_ID %in% groundnuts_subru
 ### isolate outliers flagged by DBSCAN
 groundnuts_outliers <- subset(groundnuts_results, cluster==0)
 
-### visualize outliers in relation to p, c1, c2 inputs
-ggplot(groundnuts_outliers, aes(x = c1, y = c2, color = p)) +
-  geom_point(size = 7) +
-  scale_color_gradientn(colours = rainbow(5)) +
-  geom_text_repel(aes(label = p), color = "black", size = 8)
-
 
 ### MAIZE ###
 # select variables for clustering
@@ -344,7 +323,7 @@ maize_subruns_select <- maize_subruns[ , c("run_ID", "diff_yield", "diff_fert")]
 # reference: https://stackoverflow.com/questions/12893492/choosing-eps-and-minpts-for-dbscan-r
 # use 2 * dim or ln(dim) for min points, min points = k
 kNNdist_maize <- sort(kNNdist(maize_subruns_select, k = (length(maize_subruns_select)) + 1))
-kNNdistplot(maize_subruns_select, k = (length(maize_subruns_select)) + 1)
+# kNNdistplot(maize_subruns_select, k = (length(maize_subruns_select)) + 1)
 
 ### calculate second derivative to find maximum curvature of "knee" of plot to obtain eps value, eps = second_d
 # mid <- 1:length(kNNdist_maize) 
@@ -356,9 +335,6 @@ kNNdistplot(maize_subruns_select, k = (length(maize_subruns_select)) + 1)
 ### run DBSCAN analysis
 res_dbscan <- dbscan(maize_subruns_select, eps = 68, minPts = (length(maize_subruns_select)) + 1)
 res_dbscan
-
-### visualize relationships between variables & clusters
-pairs(maize_subruns_select, col = res_dbscan$cluster + 1L)
 
 ### add dbscan cluster values to cluster dataframe
 maize_dbscan_df <- res_dbscan[1] %>%
@@ -376,12 +352,6 @@ maize_results$cluster[which(maize_results$run_ID %in% maize_subruns_select$run_I
 ### isolate outliers flagged by DBSCAN
 maize_outliers <- subset(maize_results, cluster==0)
 
-### visualize outliers in relation to p, c1, c2 inputs
-ggplot(maize_outliers, aes(x = c1, y = c2, color = p)) +
-  geom_point(size = 7) +
-  scale_color_gradientn(colours = rainbow(5)) +
-  geom_text_repel(aes(label = p), color = "black", size = 8)
-
 
 ### SESAME ###
 ### Select variables for clustering
@@ -396,7 +366,7 @@ sesame_subruns_select <- sesame_subruns[ , c("run_ID", "diff_yield", "diff_fert"
 # reference: https://stackoverflow.com/questions/12893492/choosing-eps-and-minpts-for-dbscan-r
 # use 2 * dim or ln(dim) for min points, min points = k
 kNNdist_sesame <- sort(kNNdist(sesame_subruns_select, k = (length(sesame_subruns_select)) + 1))
-kNNdistplot(sesame_subruns_select, k = (length(sesame_subruns_select)) + 1)
+# kNNdistplot(sesame_subruns_select, k = (length(sesame_subruns_select)) + 1)
 
 ### calculate second derivative to find maximum curvature of "knee" of plot to obtain eps value, eps = second_d
 # mid <- 1:length(kNNdist_sesame) 
@@ -408,9 +378,6 @@ kNNdistplot(sesame_subruns_select, k = (length(sesame_subruns_select)) + 1)
 ### run DBSCAN analysis
 res_dbscan <- dbscan(sesame_subruns_select, eps = 45, minPts = (length(sesame_subruns_select)) + 1)
 res_dbscan
-
-### visualize relationships between variables & clusters
-pairs(sesame_subruns_select, col = res_dbscan$cluster + 1L)
 
 ### add dbscan cluster values to cluster dataframe
 sesame_dbscan_df <- res_dbscan[1] %>%
@@ -428,12 +395,6 @@ sesame_results$cluster[which(sesame_results$run_ID %in% sesame_subruns_select$ru
 ### isolate outliers flagged by DBSCAN
 sesame_outliers <- subset(sesame_results, cluster==0)
 
-### visualize outliers in relation to p, c1, c2 inputs
-ggplot(sesame_outliers, aes(x = c1, y = c2, color = p)) +
-  geom_point(size = 7) +
-  scale_color_gradientn(colours = rainbow(5)) +
-  geom_text_repel(aes(label = p), color = "black", size = 8)
-
 
 ### SORGHUM ###
 ### select variables for clustering
@@ -449,7 +410,7 @@ sorghum_subruns_select <- sorghum_subruns[ , c("run_ID", "diff_yield", "diff_fer
 # reference: https://stackoverflow.com/questions/12893492/choosing-eps-and-minpts-for-dbscan-r
 # use 2 * dim or ln(dim) for min points, min points = k
 kNNdist_sorghum <- sort(kNNdist(sorghum_subruns_select, k = (length(sorghum_subruns_select)) + 1))
-kNNdistplot(sorghum_subruns_select, k = (length(sorghum_subruns_select)) + 1)
+# kNNdistplot(sorghum_subruns_select, k = (length(sorghum_subruns_select)) + 1)
 
 ### calculate second derivative to find maximum curvature of "knee" of plot to obtain eps value, eps = second_d
 # mid <- 1:length(kNNdist_sorghum) 
@@ -461,9 +422,6 @@ kNNdistplot(sorghum_subruns_select, k = (length(sorghum_subruns_select)) + 1)
 ### run DBSCAN analysis
 res_dbscan <- dbscan(sorghum_subruns_select, eps = 85, minPts = (length(sorghum_subruns_select)) + 1)
 res_dbscan
-
-### visualize relationships between variables & clusters
-pairs(sorghum_subruns_select, col = res_dbscan$cluster + 1L)
 
 ### add dbscan cluster values to cluster dataframe
 sorghum_dbscan_df <- res_dbscan[1] %>%
@@ -481,27 +439,87 @@ sorghum_results$cluster[which(sorghum_results$run_ID %in% sorghum_subruns_select
 ### isolate outliers flagged by DBSCAN
 sorghum_outliers <- subset(sorghum_results, cluster==0)
 
-### visualize outliers in relation to p, c1, c2 inputs
-ggplot(sorghum_outliers, aes(x = c1, y = c2, color = p)) +
-  geom_point(size = 7) +
-  scale_color_gradientn(colours = rainbow(5)) +
-  geom_text_repel(aes(label = p), color = "black", size = 8)
+
+######################## END CLUSTERING #########################
 
 
-################################END CLUSTERING###########################
-
+################# OUTPUT CLUSTERING RESULTS DATA #################
 
 ### combine crop cluster dataframes and join with orginal dataframe
 join1 <- full_join(cassava_outliers, maize_outliers)
 join2 <- full_join(join1, groundnuts_outliers)
 join3 <- full_join(join2, sesame_outliers)
 cluster_outliers <- full_join(join3, sorghum_outliers)
+
+### flag runs with outlier clusters as invalid in original dataframe
 cluster_outliers_select <- cluster_outliers[ , c(1,11)]
 data$flag_cluster <- NA
 data$flag_cluster[which(data$run_ID %in% cluster_outliers_select$run_ID)] <- "invalid"
 
 ### Output original data frame with anomaly information appended to outputs directory
-View(data)
+# View(data)
 setwd(oname)
 write.csv(data, file = "results_summary_bycrop_updateA.csv")
 write.csv(cluster_outliers, file = "outliers_summary.csv")
+
+
+##################### PREDICT NEW DATA POINTS CLUSTERING ########################
+
+### load new run data
+setwd(dname)
+newdata <- read_csv("MINT_v6_simulation_output_newrun1.csv")
+
+# return to working directory
+setwd(wname)
+
+### trim crops_subruns_select (original data frames used to train clusters) so that columns match those analyzed by DBSCAN
+allcrops_subruns_select <- allcrops_subruns_select[ , c("diff_yield", "diff_fert")]
+cassava_subruns_select <- cassava_subruns_select[ , c("diff_yield", "diff_fert")]
+groundnuts_subruns_select <- groundnuts_subruns_select[ , c("diff_yield", "diff_fert")]
+maize_subruns_select <- maize_subruns_select[ , c("diff_yield", "diff_fert")]
+sesame_subruns_select <- sesame_subruns_select[ , c("diff_yield", "diff_fert")]
+sorghum_subruns_select <- sorghum_subruns_select[ , c("diff_yield", "diff_fert")]
+
+### subset new data by crop
+newdata_cassava <- subset(newdata, crop == "cassava")
+newdata_groundnuts <- subset(newdata, crop == "groundnuts")
+newdata_maize <- subset(newdata, crop == "maize")
+newdata_sesame <- subset(newdata, crop == "sesame")
+newdata_sorghum <- subset(newdata, crop == "sorghum")
+
+### normalize yield and fert variables using differnce from baseline for each crop
+newdata_cassava$diff_yield <- newdata_cassava$`yield (kg/ha)` - cassava_0_yield
+newdata_cassava$diff_fert <- newdata_cassava$`Nfert (kg/ha)`- cassava_0_fert
+newdata_groundnuts$diff_yield <- newdata_groundnuts$`yield (kg/ha)` - groundnuts_0_yield
+newdata_groundnuts$diff_fert <- newdata_groundnuts$`Nfert (kg/ha)`- groundnuts_0_fert
+newdata_maize$diff_yield <- newdata_maize$`yield (kg/ha)` - maize_0_yield
+newdata_maize$diff_fert <- newdata_maize$`Nfert (kg/ha)`- maize_0_fert
+newdata_sesame$diff_yield <- newdata_sesame$`yield (kg/ha)` - sesame_0_yield
+newdata_sesame$diff_fert <- newdata_sesame$`Nfert (kg/ha)`- sesame_0_fert
+newdata_sorghum$diff_yield <- newdata_sorghum$`yield (kg/ha)` - sorghum_0_yield
+newdata_sorghum$diff_fert <- newdata_sorghum$`Nfert (kg/ha)`- sorghum_0_fert
+
+### recombine normalized crop subsets to create full data set
+join1 <- full_join(newdata_cassava, newdata_maize)
+join2 <- full_join(join1, newdata_groundnuts)
+join3 <- full_join(join2, newdata_sesame)
+newdata <- full_join(join3, newdata_sorghum)
+
+### select columns to be compared to DBSCAN cluster results, must match columns used to define/train clusters
+newdata_select <- newdata[ , c("diff_yield", "diff_fert")]
+newdata_cassava_select <- newdata_cassava[ , c("diff_yield", "diff_fert")]
+newdata_groundnuts_select <- newdata_groundnuts[ , c("diff_yield", "diff_fert")]
+newdata_maize_select <- newdata_maize[ , c("diff_yield", "diff_fert")]
+newdata_sesame_select <- newdata_sesame[ , c("diff_yield", "diff_fert")]
+newdata_sorghum_select <- newdata_sorghum[ , c("diff_yield", "diff_fert")]
+
+### predict cluster membership for new data points
+### (Note: 0 means it is predicted as noise)
+predict(res_dbscan, newdata_select, data = allcrops_subruns_select)
+predict(res_dbscan, newdata_cassava_select, data = cassava_subruns_select)
+predict(res_dbscan, newdata_groundnuts_select, data = groundnuts_subruns_select)
+predict(res_dbscan, newdata_maize_select, data = maize_subruns_select)
+predict(res_dbscan, newdata_sesame_select, data = sesame_subruns_select)
+predict(res_dbscan, newdata_sorghum_select, data = sorghum_subruns_select)
+
+################### END OUTPUT CLUSTERING RESULTS DATA ##############
