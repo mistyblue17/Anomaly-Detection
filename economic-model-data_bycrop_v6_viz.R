@@ -561,9 +561,9 @@ allcrops_outliers <- subset(data_subruns, cluster==0)
 
 ### visualize outliers in relation to p, c1, c2 inputs
 ggplot(allcrops_outliers, aes(x = c1, y = c2, color = p)) +
-  geom_point(size = 7) +
+  geom_point(size = 5) +
   scale_color_gradientn(colours = rainbow(5)) +
-  geom_text_repel(aes(label = p), color = "black", size = 8)
+  geom_text_repel(aes(label = p), color = "black", size = 5)
 
 
 ######################## END CLUSTERING #########################
