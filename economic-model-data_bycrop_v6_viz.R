@@ -251,6 +251,10 @@ res_dbscan
 
 ### visualize relationships between variables & clusters
 pairs(cassava_subruns_select, col = res_dbscan$cluster + 1L)
+## plot clusters and add noise (cluster 0) as crosses.
+plot(cassava_subruns_select, col=res_dbscan$cluster)
+points(cassava_subruns_select[res_dbscan$cluster==0,], pch = 3, col = "grey")
+hullplot(cassava_subruns_select, res_dbscan, main = "Cassava DBSCAN Clusters")
 
 ### add dbscan cluster values to cluster dataframe
 cassava_dbscan_df <- res_dbscan[1] %>%
@@ -304,6 +308,11 @@ res_dbscan
 
 ### visualize relationships between variables & clusters
 pairs(groundnuts_subruns_select, col = res_dbscan$cluster + 1L)
+### plot clusters and add noise (cluster 0) as crosses.
+plot(groundnuts_subruns_select, col=res_dbscan$cluster)
+points(groundnuts_subruns_select[res_dbscan$cluster==0,], pch = 3, col = "grey")
+
+hullplot(groundnuts_subruns_select, res_dbscan, main = "Groundnuts DBSCAN Clusters")
 
 ### add dbscan cluster values to cluster dataframe
 groundnuts_dbscan_df <- res_dbscan[1] %>%
@@ -357,6 +366,9 @@ res_dbscan
 
 ### visualize relationships between variables & clusters
 pairs(maize_subruns_select, col = res_dbscan$cluster + 1L)
+### plot clusters and add noise (cluster 0) as crosses.
+plot(maize_subruns_select, col=res_dbscan$cluster)
+points(mazie_subruns_select[res_dbscan$cluster==0,], pch = 3, col = "grey")
 
 ### add dbscan cluster values to cluster dataframe
 maize_dbscan_df <- res_dbscan[1] %>%
@@ -409,6 +421,11 @@ res_dbscan
 
 ### visualize relationships between variables & clusters
 pairs(sesame_subruns_select, col = res_dbscan$cluster + 1L)
+### plot clusters and add noise (cluster 0) as crosses.
+plot(sesame_subruns_select, col=res_dbscan$cluster)
+points(sesame_subruns_select[res_dbscan$cluster==0,], pch = 3, col = "grey")
+
+hullplot(sesame_subruns_select, res_dbscan, main = "Sesame DBSCAN Clusters")
 
 ### add dbscan cluster values to cluster dataframe
 sesame_dbscan_df <- res_dbscan[1] %>%
@@ -462,6 +479,11 @@ res_dbscan
 
 ### visualize relationships between variables & clusters
 pairs(sorghum_subruns_select, col = res_dbscan$cluster + 1L)
+### plot clusters and add noise (cluster 0) as crosses.
+plot(sorghum_subruns_select, col=res_dbscan$cluster)
+points(sorghum_subruns_select[res_dbscan$cluster==0,], pch = 3, col = "grey")
+
+hullplot(sorghum_subruns_select, res_dbscan, main = "Sorghum DBSCAN Clusters")
 
 ### add dbscan cluster values to cluster dataframe
 sorghum_dbscan_df <- res_dbscan[1] %>%
