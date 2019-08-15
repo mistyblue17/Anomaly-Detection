@@ -1,5 +1,5 @@
 # NOT RUN {
-data(iris)
+data("iris")
 iris <- as.matrix(iris[,1:4])
 
 ## find suitable eps parameter using a k-NN plot for k = dim + 1
