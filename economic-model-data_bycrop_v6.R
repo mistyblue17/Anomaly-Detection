@@ -440,6 +440,64 @@ sorghum_results$cluster[which(sorghum_results$run_ID %in% sorghum_subruns_select
 sorghum_outliers <- subset(sorghum_results, cluster==0)
 
 
+### ALL CROPS ###
+### select variables for clustering
+# reference to convert "run_ID" column to rownames so that it will be ignored during clustering while preserving results that can then be returned to original dataframe:
+# https://rdrr.io/cran/textshape/man/column_to_rownames.html
+allcrops_subruns_select <- data_subruns[ , c("run_ID", "diff_yield", "diff_fert")] %>%
+  remove_rownames %>% 
+  column_to_rownames(var = "run_ID") %>% 
+  as.data.frame()
+
+### find suitable eps parameter using a k-NN plot for k = dim + 1
+# Look for the knee!
+# reference: https://stackoverflow.com/questions/12893492/choosing-eps-and-minpts-for-dbscan-r
+# use 2 * dim or ln(dim) for min points, min points = k
+kNNdist_allcrops <- sort(kNNdist(allcrops_subruns_select, k = (length(allcrops_subruns_select)) + 1))
+kNNdistplot(allcrops_subruns_select, k = (length(allcrops_subruns_select)) + 1)
+
+### calculate second derivative to find maximum curvature of "knee" of plot to obtain eps value, eps = second_d
+# mid <- 1:length(kNNdist_allcrops) 
+# deriv <- function(x, y) diff(y) / diff(x)
+# middle_pts <- function(x) x[-1] - diff(x) / 2
+# second_d <- deriv(middle_pts(mid), deriv(mid, kNNdist_allcrops))
+# smooth_second_d <- loess(second_d ~ midpts, data.frame(second_d = second_d, midpts = middle_pts(middle_pts(mid))), model = T)
+
+### run DBSCAN analysis
+res_dbscan <- dbscan(allcrops_subruns_select, eps = 55, minPts = (length(allcrops_subruns_select)) + 1)
+res_dbscan
+
+### visualize relationships between variables & clusters
+pairs(allcrops_subruns_select, col = res_dbscan$cluster + 1L)
+
+### plot clusters and add noise (cluster 0) as crosses.
+plot(allcrops_subruns_select, col=res_dbscan$cluster)
+points(allcrops_subruns_select[res_dbscan$cluster==0,], pch = 3, col = "grey")
+
+hullplot(allcrops_subruns_select, res_dbscan, main = "All Crops DBSCAN Clusters")
+
+### add dbscan cluster values to cluster dataframe
+allcrops_dbscan_df <- res_dbscan[1] %>%
+  as.data.frame() %>% 
+  rownames_to_column (var = "run_ID")
+
+### return clustering results to original allcrops dataset and original dataframe
+allcrops_subruns_select$cluster <- res_dbscan$cluster
+allcrops_subruns_select <- allcrops_subruns_select %>% 
+  as.data.frame() %>% 
+  rownames_to_column (var = "run_ID")
+data_subruns$cluster <- NA
+data_subruns$cluster[which(data_subruns$run_ID %in% allcrops_subruns_select$run_ID)] <- allcrops_subruns_select[ , 4] 
+
+### isolate outliers flagged by DBSCAN
+allcrops_outliers <- subset(data_subruns, cluster==0)
+
+### visualize outliers in relation to p, c1, c2 inputs
+ggplot(allcrops_outliers, aes(x = c1, y = c2, color = p)) +
+  geom_point(size = 7) +
+  scale_color_gradientn(colours = rainbow(5)) +
+  geom_text_repel(aes(label = p), color = "black", size = 8)
+
 ######################## END CLUSTERING #########################
 
 
